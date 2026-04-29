@@ -2,7 +2,12 @@ import { products } from '../data/products';
 
 const API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
 const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const MODEL = 'qwen/qwen-2.5-7b-instruct:free';
+const MODELS = [
+  'google/gemma-3-4b-it:free',
+  'meta-llama/llama-3.1-8b-instruct:free',
+  'qwen/qwen-2.5-7b-instruct:free',
+  'mistralai/mistral-7b-instruct:free'
+];
 
 // ── BUDGET EXTRACTION ─────────────────────────────────────────────────────────
 // Shared by preFilter (scoring) and getRecommendations (post-processing).
@@ -201,36 +206,53 @@ export async function getRecommendations(userQuery) {
     }
   }
 
-  const response = await fetch(API_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${API_KEY}`,
-      'Content-Type': 'application/json',
-      'HTTP-Referer': 'https://mumz-smart-selector.demo',
-      'X-Title': 'Mumz Smart Selector',
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      messages: [{ role: 'user', content: buildPrompt(userQuery, filtered) }],
-      temperature: 0.2,
-      max_tokens: 1200,
-    }),
-  });
+  let lastError = null;
+  for (const modelId of MODELS) {
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${API_KEY}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://mumz-smart-selector.demo',
+          'X-Title': 'Mumz Smart Selector',
+        },
+        body: JSON.stringify({
+          model: modelId,
+          messages: [{ role: 'user', content: buildPrompt(userQuery, filtered) }],
+          temperature: 0.2,
+          max_tokens: 1200,
+        }),
+      });
 
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    const msg = err?.error?.message || `API error ${response.status}`;
-    if (msg.includes('Provider returned error') || response.status === 429) {
-      throw new Error('The AI model is busy (free tier limit). Please wait 10–15 seconds and try again.');
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        const msg = err?.error?.message || `API error ${response.status}`;
+        if (msg.includes('Provider returned error') || msg.includes('No endpoints') || response.status === 429 || response.status === 503) {
+          console.warn(`Model ${modelId} failed: ${msg}. Trying fallback...`);
+          lastError = msg;
+          continue;
+        }
+        throw new Error(msg);
+      }
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content;
+      if (!content) throw new Error('Empty response from AI');
+      
+      return finalizeResponse(content, userQuery, filtered);
+    } catch (e) {
+      if (e.message.includes('No endpoints') || e.message.includes('busy')) {
+        lastError = e.message;
+        continue;
+      }
+      throw e;
     }
-    throw new Error(msg);
   }
+  throw new Error(`The AI service is currently overloaded. Last error: ${lastError}. Please try again in 30 seconds.`);
+}
 
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content;
-  if (!content) throw new Error('Empty response from AI');
-
-  // Strip markdown code fences if the model wraps the JSON
+function finalizeResponse(content, userQuery, filtered) {
   const cleaned = content
     .replace(/^```json\s*/im, '')
     .replace(/^```\s*/im, '')
@@ -247,17 +269,12 @@ export async function getRecommendations(userQuery) {
     throw new Error('Could not parse AI response as JSON');
   }
 
-  // ── POST-PROCESSING: hard budget enforcement ──────────────────────────────
-  // The LLM sometimes recommends products slightly above the stated budget.
-  // We remove them deterministically here — the user's budget is a hard cap.
-  // Having 1–2 results is perfectly fine (user confirmed this).
-  // Note: `budget` was already extracted above in the category-budget gate.
+  const budget = extractBudget(userQuery);
   if (budget && parsed.type === 'recommendations' && parsed.recommendations?.length) {
     parsed.recommendations = parsed.recommendations
-      .filter(r => r.price <= budget)         // hard cutoff — no exceptions
-      .map((r, i) => ({ ...r, rank: i + 1 })); // re-rank sequentially
+      .filter(r => r.price <= budget)
+      .map((r, i) => ({ ...r, rank: i + 1 }));
 
-    // If no products survive the budget filter → return a no_match edge case
     if (parsed.recommendations.length === 0) {
       const minPrice = Math.min(...filtered.map(p => p.price));
       return {
@@ -272,6 +289,6 @@ export async function getRecommendations(userQuery) {
       };
     }
   }
-
   return parsed;
+}
 }
