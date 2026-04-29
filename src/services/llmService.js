@@ -2,17 +2,7 @@ import { products } from '../data/products';
 
 const API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
 const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const MODELS = [
-  'google/gemini-2.0-flash-exp:free',
-  'google/gemini-flash-1.5-8b:free',
-  'deepseek/deepseek-chat:free',
-  'meta-llama/llama-3.1-8b-instruct:free',
-  'qwen/qwen-2.5-7b-instruct:free',
-  'mistralai/mistral-7b-instruct:free',
-  'google/gemma-3-4b-it:free'
-];
-
-const sleep = (ms) => new Promise(res => setTimeout(res, ms));
+const MODEL = 'google/gemma-3-4b-it:free';
 
 // ── BUDGET EXTRACTION ─────────────────────────────────────────────────────────
 // Shared by preFilter (scoring) and getRecommendations (post-processing).
@@ -211,88 +201,36 @@ export async function getRecommendations(userQuery) {
     }
   }
 
-  let lastError = null;
-  for (const modelId of MODELS) {
-    try {
-      console.log(`Smart Selector: Trying model ${modelId}...`);
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: modelId,
-          messages: [{ role: 'user', content: buildPrompt(userQuery, filtered) }],
-          temperature: 0.1, // Lower temperature for more stable JSON
-          max_tokens: 800,
-        }),
-      });
+  const response = await fetch(API_URL, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${API_KEY}`,
+      'Content-Type': 'application/json',
+      'HTTP-Referer': 'https://mumz-smart-selector.demo',
+      'X-Title': 'Mumz Smart Selector',
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      messages: [{ role: 'user', content: buildPrompt(userQuery, filtered) }],
+      temperature: 0.2,
+      max_tokens: 1200,
+    }),
+  });
 
-      if (!response.ok) {
-        const errorBody = await response.text();
-        console.error(`Smart Selector: API Error for ${modelId}:`, errorBody);
-        
-        let err;
-        try { err = JSON.parse(errorBody); } catch { err = {}; }
-        
-        const msg = err?.error?.message || `Error ${response.status}`;
-        
-        if (msg.includes('Provider returned error') || msg.includes('No endpoints') || 
-            response.status === 429 || response.status === 503 || response.status === 402) {
-          lastError = msg;
-          await sleep(1000); // 1s delay
-          continue;
-        }
-        throw new Error(msg);
-      }
-
-      const data = await response.json();
-      const content = data.choices?.[0]?.message?.content;
-      if (!content) throw new Error('Empty response from AI');
-
-      return finalizeResponse(content, userQuery, filtered);
-    } catch (e) {
-      if (e.message.includes('No endpoints') || e.message.includes('busy')) {
-        lastError = e.message;
-        await sleep(500); // Wait a bit before trying next model
-        continue;
-      }
-      throw e;
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    const msg = err?.error?.message || `API error ${response.status}`;
+    if (msg.includes('Provider returned error') || response.status === 429) {
+      throw new Error('The AI model is busy (free tier limit). Please wait 10–15 seconds and try again.');
     }
-  }
-  // --- SAFETY NET FALLBACK ---
-  // If all AI models are down, generate a high-quality deterministic response
-  // so the user can still finish their video recording.
-  console.warn("All AI models failed. Using Safety Net fallback...");
-  const topMatch = filtered[0];
-  if (topMatch) {
-    return {
-      type: 'recommendations',
-      query_understood_en: userQuery,
-      query_understood_ar: userQuery,
-      recommendations: [{
-        rank: 1,
-        product_id: topMatch.id,
-        name: topMatch.name,
-        name_ar: topMatch.name_ar,
-        price: topMatch.price,
-        currency: 'AED',
-        reason_en: `This ${topMatch.name} is a top-rated choice for your specific needs.`,
-        reason_ar: `هذا ${topMatch.name_ar} هو الخيار الأفضل لاحتياجاتك المحددة.`,
-        safety_note_en: topMatch.safety_tags?.[0] || "Safety certified.",
-        safety_note_ar: topMatch.safety_tags_ar?.[0] || "معتمد للسلامة.",
-        budget_fit: "within_budget",
-        match_highlights: topMatch.features.slice(0, 2),
-        match_highlights_ar: topMatch.features.slice(0, 2)
-      }]
-    };
+    throw new Error(msg);
   }
 
-  throw new Error(`The AI service is currently overloaded. Last error: ${lastError}. Please try again in 30 seconds.`);
-}
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content;
+  if (!content) throw new Error('Empty response from AI');
 
-function finalizeResponse(content, userQuery, filtered) {
+  // Strip markdown code fences if the model wraps the JSON
   const cleaned = content
     .replace(/^```json\s*/im, '')
     .replace(/^```\s*/im, '')
@@ -309,12 +247,17 @@ function finalizeResponse(content, userQuery, filtered) {
     throw new Error('Could not parse AI response as JSON');
   }
 
-  const budget = extractBudget(userQuery);
+  // ── POST-PROCESSING: hard budget enforcement ──────────────────────────────
+  // The LLM sometimes recommends products slightly above the stated budget.
+  // We remove them deterministically here — the user's budget is a hard cap.
+  // Having 1–2 results is perfectly fine (user confirmed this).
+  // Note: `budget` was already extracted above in the category-budget gate.
   if (budget && parsed.type === 'recommendations' && parsed.recommendations?.length) {
     parsed.recommendations = parsed.recommendations
-      .filter(r => r.price <= budget)
-      .map((r, i) => ({ ...r, rank: i + 1 }));
+      .filter(r => r.price <= budget)         // hard cutoff — no exceptions
+      .map((r, i) => ({ ...r, rank: i + 1 })); // re-rank sequentially
 
+    // If no products survive the budget filter → return a no_match edge case
     if (parsed.recommendations.length === 0) {
       const minPrice = Math.min(...filtered.map(p => p.price));
       return {
@@ -329,6 +272,6 @@ function finalizeResponse(content, userQuery, filtered) {
       };
     }
   }
+
   return parsed;
 }
-
