@@ -3,6 +3,7 @@ import { products } from '../data/products';
 const API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
 const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const MODELS = [
+  'google/gemini-2.0-flash-lite-preview-02-05:free',
   'google/gemma-3-4b-it:free',
   'meta-llama/llama-3.1-8b-instruct:free',
   'qwen/qwen-2.5-7b-instruct:free',
@@ -215,12 +216,13 @@ export async function getRecommendations(userQuery) {
   let lastError = null;
   for (const modelId of MODELS) {
     try {
+      console.log(`Smart Selector: Trying model ${modelId}...`);
       const response = await fetch(API_URL, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${API_KEY}`,
           'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://mumz-smart-selector.demo',
+          'HTTP-Referer': 'https://mumz-smart-selector.vercel.app',
           'X-Title': 'Mumz Smart Selector',
         },
         body: JSON.stringify({
@@ -232,11 +234,18 @@ export async function getRecommendations(userQuery) {
       });
 
       if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        const msg = err?.error?.message || `API error ${response.status}`;
-        if (msg.includes('Provider returned error') || msg.includes('No endpoints') || response.status === 429 || response.status === 503) {
-          console.warn(`Model ${modelId} failed: ${msg}. Trying fallback...`);
+        const errorBody = await response.text();
+        console.error(`Smart Selector: API Error for ${modelId}:`, errorBody);
+        
+        let err;
+        try { err = JSON.parse(errorBody); } catch { err = {}; }
+        
+        const msg = err?.error?.message || `Error ${response.status}`;
+        
+        if (msg.includes('Provider returned error') || msg.includes('No endpoints') || 
+            response.status === 429 || response.status === 503 || response.status === 402) {
           lastError = msg;
+          await sleep(1000); // 1s delay
           continue;
         }
         throw new Error(msg);
