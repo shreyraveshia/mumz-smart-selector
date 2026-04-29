@@ -2,7 +2,7 @@ import { products } from '../data/products';
 
 const API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
 const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const MODEL = 'microsoft/phi-3-mini-128k-instruct:free';
+const MODEL = 'google/gemini-2.0-flash-lite-preview-02-05:free';
 
 // ── BUDGET EXTRACTION ─────────────────────────────────────────────────────────
 // Shared by preFilter (scoring) and getRecommendations (post-processing).
@@ -218,7 +218,7 @@ export async function getRecommendations(userQuery) {
   // The LLM sometimes recommends products slightly above the stated budget.
   // We remove them deterministically here — the user's budget is a hard cap.
   // Having 1–2 results is perfectly fine (user confirmed this).
-  // Note: `budget` was already extracted above in the category-budget gate.
+  // Note: `budget` is already extracted above.
   if (budget && parsed.type === 'recommendations' && parsed.recommendations?.length) {
     parsed.recommendations = parsed.recommendations
       .filter(r => r.price <= budget)         // hard cutoff — no exceptions
