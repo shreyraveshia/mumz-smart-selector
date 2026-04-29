@@ -109,7 +109,8 @@ ${JSON.stringify(filteredProducts.map(compact))}
 QUERY: "${userQuery}"
 
 RULES:
-- Return best 3 matching products → "recommendations" format
+- Return the most relevant products (up to 3) → "recommendations" format
+- IMPORTANT: Only recommend products that truly match the core intent. If only one product fits (e.g. only one "warmer" exists), only return that one. Do not recommend unrelated items just to fill the list.
 - Budget too low / no fit → edge_type "no_match"
 - Too vague (e.g. "something good") → edge_type "vague_query"
 - Conflicting (e.g. "premium under AED 50") → edge_type "conflicting"
@@ -117,7 +118,7 @@ RULES:
 - IMPORTANT: Only recommend products whose price is at or below the user's stated budget.
 
 FORMAT A:
-{"type":"recommendations","query_understood_en":"...","query_understood_ar":"...","recommendations":[{"rank":1,"product_id":"...","name":"...","name_ar":"...","price":0,"currency":"AED","reason_en":"one sentence","reason_ar":"جملة واحدة","safety_note_en":"...","safety_note_ar":"...","budget_fit":"within_budget","match_highlights":["f1","f2"],"match_highlights_ar":["م1","م2"]},{"rank":2,...},{"rank":3,...}]}
+{"type":"recommendations","query_understood_en":"...","query_understood_ar":"...","recommendations":[{"rank":1,"product_id":"...","name":"...","name_ar":"...","price":0,"currency":"AED","reason_en":"one sentence","reason_ar":"جملة واحدة","safety_note_en":"...","safety_note_ar":"...","budget_fit":"within_budget","match_highlights":["f1","f2"],"match_highlights_ar":["م1","م2"]}]} // Array can be 1, 2, or 3 items
 
 FORMAT B:
 {"type":"edge_case","edge_type":"no_match","message_en":"...","message_ar":"...","suggestion_en":"...","suggestion_ar":"...","closest_price_en":"AED X or null","closest_price_ar":"null"}
