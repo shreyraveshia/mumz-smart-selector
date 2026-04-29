@@ -5,7 +5,7 @@ I built **Mumz Smart Selector**, an AI-powered decision engine for first-time pa
 
 ## 2. Prototype Access
 *   **Live URL:** [https://mumz-smart-selector.vercel.app](https://mumz-smart-selector.vercel.app)
-*   **Video Walkthrough (Loom):** [PASTE_YOUR_LOOM_LINK_HERE]
+*   **Video Walkthrough:** [PASTE_YOUR_GOOGLE_DRIVE_OR_LOOM_LINK_HERE]
 
 ---
 
@@ -14,59 +14,56 @@ I built **Mumz Smart Selector**, an AI-powered decision engine for first-time pa
 ### The Persona: Fatima, 29, Dubai
 *   **Situation:** First-time mother, 8 months pregnant, setting up her baby registry.
 *   **Goal:** Needs a stroller but is overwhelmed by technical jargon (ISOFIX, 5-point harness, i-Size).
-*   **The Problem:** Even after filtering for "Age" and "Price," she is left with 40+ products. She has to open every single page to see if it's "lightweight" or "cabin approved."
-
-### The "High-Leverage" Pick
-I chose to solve **Decision Fatigue after Filtering**. While most e-commerce problems are UI-based, helping a mother choose between three very similar strollers is a cognitive burden that filters cannot solve. This requires reasoning, not just filtering.
+*   **What felt broken:** Shopping on Mumzworld as Fatima, I found that filters tell you **what** a product is (Price, Brand), but not **if it's right for you**. I was surprised that even after filtering for "Travel Strollers," I still had to read 15 descriptions to find one that was "cabin approved." It felt like the burden of research was entirely on me.
+*   **The Choice:** I chose to solve **Decision Fatigue**. It’s high-leverage because this is the point where a customer leaves the site to "ask a friend on WhatsApp." If I can be that "friend" on-site, I save the sale.
 
 ### Why AI?
 AI is the right tool because the solution requires **reasoning over unstructured intent**.
-*   **Filters:** Fatima doesn't know *what* to filter for.
+*   **Filters:** Fatima doesn't know she needs "EVA wheels" for urban sidewalks.
 *   **AI Solution:** An LLM can "read" product features like a human assistant, understand that "urban use" implies a need for "shock absorbers," and explain *why* it fits in her language.
 
 ---
 
 ## 4. Show Your Work: Technical Journey
 
-### Timeline Log (Total Time: ~4.5 Hours)
-*   **0:00 - 1:00:** Discovery, Persona definition, and hand-crafting the 25-product bilingual dataset.
-*   **1:00 - 2:00:** Initial LLM integration. Tackled context limits by implementing client-side pre-filtering (78% token reduction).
-*   **2:00 - 3:00:** UI Development: Responsive grid, Dark/Light mode, and full Arabic RTL support.
-*   **3:00 - 4:00:** Logic Hardening: Implemented relevance gates and deterministic budget enforcement.
-*   **4:00 - 4:30:** Bug fixing (Hallucination prevention) and Vercel deployment.
+### Tools Used
+*   **React + Vite:** Frontend framework for instant HMR and rapid prototyping.
+*   **OpenRouter:** API gateway used to access the `openrouter/auto:free` routing engine.
+*   **Antigravity AI:** Used for pair-programming, UI architecture, and debugging.
+*   **Vanilla CSS:** Custom design system for the "AI Spotlight" and Dark/Light mode glassmorphism.
+
+### Timeline Log (30-Minute Increments)
+*   **0:00 - 1:00:** Discovery: Shopping as "Fatima," identifying the filter-fatigue problem, and hand-crafting the 25-product bilingual dataset.
+*   **1:00 - 1:30:** Initial LLM integration. Tackled context limits by implementing client-side pre-filtering (78% token reduction).
+*   **1:30 - 2:00:** UI Development: Responsive grid, Dark/Light mode, and full Arabic RTL support.
+*   **2:00 - 2:30:** Logic Hardening: Implemented relevance gates and deterministic budget enforcement.
+*   **2:30 - 3:00:** Bug fixing: Solved the "Silicone Spoon" hallucination by implementing keyword-level budget gating.
+*   **3:00 - 3:30:** API Crisis: Phi-3 and Gemini 2.0 Free endpoints were deprecated/busy. Spent 30 mins rotating models.
+*   **3:30 - 4:00:** Resolution: Switched to `openrouter/auto:free` for stability and simplified the budget gate for better precision.
+*   **4:00 - 5:00:** Documentation, Final QA across Light/Dark modes, and Vercel deployment.
 
 ### Prompts That Mattered
-*   **Evolution 1 (Context Overflow):** Initially sent 25 products. Failed. **Revision:** Switched to a "Top 10" pre-filtered list sent to the LLM.
-*   **Evolution 2 (Budget Hallucination):** Initially asked LLM to stay under budget. It failed. **Revision:** Moved budget enforcement to a hard JavaScript filter after the LLM call.
-*   **Evolution 3 (Arabic Formatting):** Initially got mixed prose. **Revision:** Defined a strict JSON schema with `reason_en` and `reason_ar` keys.
+*   **Prompt 1 (The Context Shave):** "Here are the top 10 most relevant products..." (Revised from "Here are all 25...") to save tokens and stay within free-tier limits.
+*   **Prompt 2 (The Math Fix):** "Return UP TO 3 products... do not recommend unrelated items just to fill the list." (Revised to stop the AI from calling a spoon a 'warmer').
+*   **Prompt 3 (The Bilingual Bridge):** Used strict JSON schema with `reason_en` and `reason_ar` to prevent the UI from breaking during RTL flips.
 
 ### Dead Ends
-1.  **System Role:** Gemma 3 4B rejected system messages. Moved everything to the `user` message.
-2.  **Category-only Gating:** Blocking by category was too broad. Switched to **Keyword-level gating** for accuracy.
-3.  **LLM Math:** Tried letting AI do price comparisons. It's too unreliable for hard caps.
+1.  **System Role:** Gemma 3 4B on OpenRouter ignored system instructions. **Lesson:** Move all rules to the user prompt for small models.
+2.  **LLM Budgeting:** Tried letting AI do price comparisons. It failed. **Lesson:** Math belongs in JavaScript, reasoning belongs in the LLM.
+3.  **Specific Model IDs:** Attempted to hardcode `phi-3` and `gemini-2.0`. Both were busy or deprecated during build. **Lesson:** Use an auto-router (`openrouter/auto:free`) for mission-critical free-tier apps.
 
 ### Cuts from Scope
-*   **Dynamic Model Switching:** Originally planned a fallback to Llama 3. Cut for time/complexity.
-*   **Product Comparison Table:** Cut in favor of the "Spotlight" effect in the main catalog to keep the UI clean.
+*   **Voice-to-Search:** Cut to focus on reasoning logic.
+*   **Compare Table:** Cut in favor of the "Spotlight" UI to reduce visual clutter.
 
 ---
 
 ## 5. Measurement Plan
-*   **Leading Indicator:** Search-to-Add-to-Cart Conversion Rate for users of the Smart Selector.
-*   **5% Experiment:** Show the selector to 5% of users. Success = 10% conversion lift. Flatline = Users engage but return to traditional filters.
+*   **Leading Indicator:** Search-to-Add-to-Cart Conversion Rate (Week 1).
+*   **5% Experiment:** Deploy to 5% of stroller category traffic. Success = 10% lift in "Add to Cart." Flatline = High engagement but users revert to traditional filters.
 
 ---
 
 ## 6. AI Usage Note & Time Log
-*   **Models:** `google/gemma-3-4b-it:free` via OpenRouter.
-*   **Builders:** Built with React/Vite using Antigravity AI for UI architecture.
-*   **Workflow:** AI for scaffolding and translations; Manual engineering for deterministic gates and filters.
-*   **Total Time:** 4.5 Hours (Honest log: Discovery 1h, Build 2h, Polish 1h, Docs 0.5h).
-
----
-
-### Technical Highlights
-*   **Bilingual & RTL:** Full support for Arabic language and right-to-left layouts.
-*   **Context Optimized:** Uses client-side pre-filtering to reduce prompt size by 78%.
-*   **Zero Hallucination Guard:** Deterministic JS gates block out-of-scope queries and enforce hard budget caps.
-*   **Premium UX:** Dark/Light mode glassmorphism with an interactive "Spotlight" effect.
+*   **AI Usage:** Used `openrouter/auto:free` for bilingual reasoning. Built with Antigravity AI for scaffolding and debugging.
+*   **Time Log:** Total 5 Hours. (1h Discovery, 2.5h Building/Debugging, 1.5h Polishing/Docs).
