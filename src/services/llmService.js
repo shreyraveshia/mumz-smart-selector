@@ -250,7 +250,7 @@ export async function getRecommendations(userQuery) {
   // The LLM sometimes recommends products slightly above the stated budget.
   // We remove them deterministically here — the user's budget is a hard cap.
   // Having 1–2 results is perfectly fine (user confirmed this).
-  const budget = extractBudget(userQuery);
+  // Note: `budget` was already extracted above in the category-budget gate.
   if (budget && parsed.type === 'recommendations' && parsed.recommendations?.length) {
     parsed.recommendations = parsed.recommendations
       .filter(r => r.price <= budget)         // hard cutoff — no exceptions
