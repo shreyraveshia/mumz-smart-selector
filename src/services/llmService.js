@@ -2,7 +2,7 @@ import { products } from '../data/products';
 
 const API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
 const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const MODEL = 'meta-llama/llama-3.2-3b-instruct:free';
+const MODEL = 'microsoft/phi-3-mini-128k-instruct:free';
 
 // ── BUDGET EXTRACTION ─────────────────────────────────────────────────────────
 // Shared by preFilter (scoring) and getRecommendations (post-processing).
@@ -226,12 +226,17 @@ export async function getRecommendations(userQuery) {
 
     // If no products survive the budget filter → return a no_match edge case
     if (parsed.recommendations.length === 0) {
-      const minPrice = Math.min(...filtered.map(p => p.price));
+      // Find closest price from products that actually fit the category
+      const targetProducts = detectedCat 
+        ? products.filter(p => p.category === detectedCat)
+        : filtered;
+      
+      const minPrice = Math.min(...targetProducts.map(p => p.price));
       return {
         type: 'edge_case',
         edge_type: 'no_match',
-        message_en: `No products found within AED ${budget}. Closest options start from AED ${minPrice}.`,
-        message_ar: `لم يتم العثور على منتجات ضمن ${budget} درهم. أقرب خياراتنا تبدأ من ${minPrice} درهم.`,
+        message_en: `No products found within AED ${budget}. Closest options in this category start from AED ${minPrice}.`,
+        message_ar: `لم يتم العثور على منتجات ضمن ${budget} درهم. أقرب خياراتنا في هذه الفئة تبدأ من ${minPrice} درهم.`,
         suggestion_en: 'Try raising your budget slightly or broadening the product type.',
         suggestion_ar: 'حاول رفع ميزانيتك قليلاً أو توسيع نطاق بحثك.',
         closest_price_en: `AED ${minPrice}`,
