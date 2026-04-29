@@ -77,8 +77,17 @@ We used a **Hybrid Intelligence** approach to overcome the limitations of free-t
 *   **Leading Indicator:** Search-to-Add-to-Cart Conversion Rate for Smart Selector users vs. traditional filter users.
 *   **5% Experiment:** Success = 10% lift in "Add to Cart" in the stroller category. Flatline = High engagement with AI but users return to filters to "verify," indicating a lack of trust.
 
----
+## 6. Submission Details
 
-## 6. AI Usage Note & Time Log
-*   **AI Usage:** Used `openrouter/auto:free`. Built with Antigravity AI for UI scaffolding and logic debugging.
-*   **Time Log:** Total 5 Hours. (1h Discovery, 2.5h Building/Crisis Mgmt, 1.5h Polishing/Docs).
+**Track:** B (Product Challenge)
+
+**AI Usage Note (Max 5 Lines):**
+*   **OpenRouter (auto:free):** Performed bilingual product reasoning and safety justifications.
+*   **Antigravity AI:** Handled React UI scaffolding, logic state management, and real-time debugging.
+*   **Google Gemini:** Used during the Discovery phase for persona brainstorming and data synthesis.
+
+**Time Log (Max 5 Lines):**
+*   **Discovery:** 1 Hour (Persona research & data synthesis).
+*   **Building:** 2.5 Hours (React scaffolding, LLM integration, Crisis management).
+*   **Polishing:** 1.5 Hours (RTL layout, Dark mode, Documentation & Deploy).
+*   **Total Time:** 5 Hours (Honest log: including 60 mins of API endpoint troubleshooting).
