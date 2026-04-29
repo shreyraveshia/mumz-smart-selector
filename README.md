@@ -58,7 +58,7 @@ AI is the right tool because the solution requires **reasoning over unstructured
 ---
 
 ## 6. AI Usage Note & Time Log
-*   **Models:** `google/gemma-3-4b-it:free` via OpenRouter.
+*   **Models:** `google/gemma-2-9b-it:free` via OpenRouter.
 *   **Builders:** Built with React/Vite using Antigravity AI for UI architecture.
 *   **Workflow:** AI for scaffolding and translations; Manual engineering for deterministic gates and filters.
 *   **Total Time:** 4.5 Hours (Honest log: Discovery 1h, Build 2h, Polish 1h, Docs 0.5h).

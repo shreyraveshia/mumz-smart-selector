@@ -2,7 +2,7 @@ import { products } from '../data/products';
 
 const API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
 const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const MODEL = 'google/gemma-3-4b-it:free';
+const MODEL = 'google/gemma-2-9b-it:free';
 
 // ── BUDGET EXTRACTION ─────────────────────────────────────────────────────────
 // Shared by preFilter (scoring) and getRecommendations (post-processing).
