@@ -6,8 +6,14 @@ const MODELS = [
   'google/gemma-3-4b-it:free',
   'meta-llama/llama-3.1-8b-instruct:free',
   'qwen/qwen-2.5-7b-instruct:free',
-  'mistralai/mistral-7b-instruct:free'
+  'mistralai/mistral-7b-instruct:free',
+  'google/gemma-2-9b-it:free',
+  'microsoft/phi-3-mini-128k-instruct:free',
+  'microsoft/phi-3-medium-128k-instruct:free',
+  'google/gemma-7b-it:free'
 ];
+
+const sleep = (ms) => new Promise(res => setTimeout(res, ms));
 
 // ── BUDGET EXTRACTION ─────────────────────────────────────────────────────────
 // Shared by preFilter (scoring) and getRecommendations (post-processing).
@@ -244,6 +250,7 @@ export async function getRecommendations(userQuery) {
     } catch (e) {
       if (e.message.includes('No endpoints') || e.message.includes('busy')) {
         lastError = e.message;
+        await sleep(500); // Wait a bit before trying next model
         continue;
       }
       throw e;
