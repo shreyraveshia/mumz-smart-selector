@@ -164,9 +164,9 @@ export async function getRecommendations(userQuery) {
 
     // Extract meaningful content words from query (strip stopwords + budget phrase)
     const stopWords = new Set([
-      'under','below','max','above','aed','درهم','for','a','an','the','in','with',
-      'best','good','need','want','buy','me','my','baby','infant','child','year',
-      'month','old','and','or','of','to','on','at','is','are',
+      'under', 'below', 'max', 'above', 'aed', 'درهم', 'for', 'a', 'an', 'the', 'in', 'with',
+      'best', 'good', 'need', 'want', 'buy', 'me', 'my', 'baby', 'infant', 'child', 'year',
+      'month', 'old', 'and', 'or', 'of', 'to', 'on', 'at', 'is', 'are',
     ]);
     const queryKeywords = q
       .replace(/(?:under|below|max|aed|درهم)\s*\d+/gi, '')  // remove budget phrase
@@ -239,7 +239,7 @@ export async function getRecommendations(userQuery) {
       const data = await response.json();
       const content = data.choices?.[0]?.message?.content;
       if (!content) throw new Error('Empty response from AI');
-      
+
       return finalizeResponse(content, userQuery, filtered);
     } catch (e) {
       if (e.message.includes('No endpoints') || e.message.includes('busy')) {
@@ -291,4 +291,4 @@ function finalizeResponse(content, userQuery, filtered) {
   }
   return parsed;
 }
-}
+
