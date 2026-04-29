@@ -5,7 +5,7 @@ I built **Mumz Smart Selector**, an AI-powered decision engine for first-time pa
 
 ## 2. Prototype Access
 *   **Live URL:** [https://mumz-smart-selector.vercel.app](https://mumz-smart-selector.vercel.app)
-*   **Video Walkthrough:** [PASTE_YOUR_GOOGLE_DRIVE_OR_LOOM_LINK_HERE]
+*   **Video Walkthrough:** [Google Drive Link](https://drive.google.com/file/d/1Mg7vKCEFzm1Z_oKiv11yWWf5fwaEJmrP/view?usp=drive_link)
 
 ---
 
