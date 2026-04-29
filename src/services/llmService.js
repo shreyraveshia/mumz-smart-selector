@@ -2,7 +2,7 @@ import { products } from '../data/products';
 
 const API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
 const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const MODEL = 'google/gemma-3-4b-it:free';
+const MODEL = 'meta-llama/llama-3.2-3b-instruct:free';
 
 // ── BUDGET EXTRACTION ─────────────────────────────────────────────────────────
 // Shared by preFilter (scoring) and getRecommendations (post-processing).
@@ -147,57 +147,24 @@ export async function getRecommendations(userQuery) {
     };
   }
 
-  // ── CATEGORY-BUDGET MISMATCH GATE (client-side, no LLM call needed) ────────
-  // Checks at the KEYWORD level, not just category level.
-  // Example: "warmer under 200" → feeding category has 5 products, but only
-  // SmartSpoon has "warmer" in its name/features — and it's AED 210 (over 200).
-  // → We return no_match with "closest is SmartSpoon at AED 210" immediately.
-  // This prevents hallucination like "silicone spoon can be warmed for feeding".
+  // ── CATEGORY-BUDGET MISMATCH GATE (client-side) ───────────────────────────
   const budget = extractBudget(userQuery);
   if (detectedCat && budget) {
-    const q = userQuery.toLowerCase();
+    const catProducts = products.filter(p => p.category === detectedCat);
+    const withinBudget = catProducts.filter(p => p.price <= budget);
 
-    // Extract meaningful content words from query (strip stopwords + budget phrase)
-    const stopWords = new Set([
-      'under', 'below', 'max', 'above', 'aed', 'درهم', 'for', 'a', 'an', 'the', 'in', 'with',
-      'best', 'good', 'need', 'want', 'buy', 'me', 'my', 'baby', 'infant', 'child', 'year',
-      'month', 'old', 'and', 'or', 'of', 'to', 'on', 'at', 'is', 'are',
-    ]);
-    const queryKeywords = q
-      .replace(/(?:under|below|max|aed|درهم)\s*\d+/gi, '')  // remove budget phrase
-      .split(/\s+/)
-      .map(w => w.replace(/[^a-z\u0600-\u06ff]/gi, ''))      // strip punctuation
-      .filter(w => w.length > 2 && !stopWords.has(w));       // strip stopwords
-
-    if (queryKeywords.length > 0) {
-      // Find all products (across all categories) whose name/features/best_for
-      // contain at least one of the content keywords from the query
-      const keywordMatches = products.filter(p => {
-        const productText = [
-          p.name, p.name_ar,
-          ...(p.features || []),
-          ...(p.best_for || []),
-        ].join(' ').toLowerCase();
-        return queryKeywords.some(kw => productText.includes(kw));
-      });
-
-      // If there ARE keyword-matching products but NONE within budget → no_match
-      if (keywordMatches.length > 0) {
-        const withinBudget = keywordMatches.filter(p => p.price <= budget);
-        if (withinBudget.length === 0) {
-          const closest = keywordMatches.sort((a, b) => a.price - b.price)[0];
-          return {
-            type: 'edge_case',
-            edge_type: 'no_match',
-            message_en: `No "${queryKeywords[0]}" found within AED ${budget}. The closest match is "${closest.name}" at AED ${closest.price}.`,
-            message_ar: `لم يتم العثور على "${queryKeywords[0]}" ضمن ${budget} درهم. أقرب خيار هو "${closest.name_ar}" بسعر ${closest.price} درهم.`,
-            suggestion_en: `Try raising your budget to at least AED ${closest.price}, or search without a budget limit.`,
-            suggestion_ar: `حاول رفع ميزانيتك إلى ${closest.price} درهم على الأقل، أو ابحث بدون حد للميزانية.`,
-            closest_price_en: `AED ${closest.price}`,
-            closest_price_ar: `${closest.price} درهم`,
-          };
-        }
-      }
+    if (withinBudget.length === 0 && catProducts.length > 0) {
+      const closest = catProducts.sort((a, b) => a.price - b.price)[0];
+      return {
+        type: 'edge_case',
+        edge_type: 'no_match',
+        message_en: `No products in this category found within AED ${budget}. Closest is ${closest.name} at AED ${closest.price}.`,
+        message_ar: `لم يتم العثور على منتجات في هذه الفئة ضمن ${budget} درهم. الأقرب هو ${closest.name_ar} بسعر ${closest.price} درهم.`,
+        suggestion_en: `Try raising your budget to at least AED ${closest.price}.`,
+        suggestion_ar: `حاول رفع ميزانيتك إلى ${closest.price} درهم على الأقل.`,
+        closest_price_en: `AED ${closest.price}`,
+        closest_price_ar: `${closest.price} درهم`,
+      };
     }
   }
 
