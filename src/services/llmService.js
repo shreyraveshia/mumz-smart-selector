@@ -3,15 +3,13 @@ import { products } from '../data/products';
 const API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
 const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const MODELS = [
-  'google/gemini-2.0-flash-lite-preview-02-05:free',
-  'google/gemma-3-4b-it:free',
+  'google/gemini-2.0-flash-exp:free',
+  'google/gemini-flash-1.5-8b:free',
+  'deepseek/deepseek-chat:free',
   'meta-llama/llama-3.1-8b-instruct:free',
   'qwen/qwen-2.5-7b-instruct:free',
   'mistralai/mistral-7b-instruct:free',
-  'google/gemma-2-9b-it:free',
-  'microsoft/phi-3-mini-128k-instruct:free',
-  'microsoft/phi-3-medium-128k-instruct:free',
-  'google/gemma-7b-it:free'
+  'google/gemma-3-4b-it:free'
 ];
 
 const sleep = (ms) => new Promise(res => setTimeout(res, ms));
