@@ -1,7 +1,7 @@
 # Submission: Track B - Mumz Smart Selector ✨
 
 ## 1. Executive Summary
-I built **Mumz Smart Selector**, an AI-powered decision engine for first-time parents. It solves the problem of "Decision Fatigue after Filtering" by allowing users to describe their specific needs in natural language (English or Arabic). The system reasons across a curated catalog of 25 products, enforcing hard budget constraints and safety rules, and surfaces exactly 3 ranked recommendations with personalized justifications and an "AI Spotlight" visual effect in the catalog.
+**Mumz Smart Selector** is an AI-powered baby product decision engine built as a standalone web app. It solves a real problem on Mumzworld: users still face overwhelming choice even after filtering. A mother types what she needs in plain language (English or Arabic) — *"best stroller for a 1-year-old under AED 800"* — and the AI reads through a curated product catalog, reasons about age fit, budget, and features, then surfaces exactly 3 ranked picks with a one-line personalised reason, a safety note, and a budget badge. The product catalog is always visible on screen; when results arrive, the 3 AI-picked cards glow gold while the other 22 dim — making the AI feel like it's scanning a physical shelf and pointing.
 
 ## 2. Prototype Access
 *   **Live URL:** [https://mumz-smart-selector.vercel.app](https://mumz-smart-selector.vercel.app)
@@ -9,18 +9,25 @@ I built **Mumz Smart Selector**, an AI-powered decision engine for first-time pa
 
 ---
 
-## 3. Discovery & Strategy
+## 3. Discovery & Strategy: The Real Problem
 
-### The Persona: Fatima, 29, Dubai
-*   **Situation:** First-time mother, 8 months pregnant, setting up her baby registry.
+### Persona: Fatima, 29, Dubai
+*   **Situation:** First-time mother, 8 months pregnant, speaks Arabic at home.
 *   **Goal:** Needs a stroller but is overwhelmed by technical jargon (ISOFIX, 5-point harness, i-Size).
-*   **What felt broken:** Shopping on Mumzworld as Fatima, I found that filters tell you **what** a product is (Price, Brand), but not **if it's right for you**. I was surprised that even after filtering for "Travel Strollers," I still had to read 15 descriptions to find one that was "cabin approved." It felt like the burden of research was entirely on me.
-*   **The Choice:** I chose to solve **Decision Fatigue**. It’s high-leverage because this is the point where a customer leaves the site to "ask a friend on WhatsApp." If I can be that "friend" on-site, I save the sale.
+*   **What Fatima Experiences Today:**
+    1. She searches "stroller" and gets 200+ results.
+    2. She uses filters (age, price, brand) but is still left with 40+ products.
+    3. She opens 10 tabs, reads 10 descriptions, and realizes she still doesn't know which is "best" for her specific use case.
+    4. She closes her laptop overwhelmed and asks her sister.
+
+### The Pick: Decision Fatigue after Filtering
+I chose to solve **Decision Fatigue**. While standard filters narrow the catalog, they don't lead to a *decision*. For baby products, this is acute because:
+*   Parents are first-timers with zero prior knowledge.
+*   Stakes feel high (safety, child wellbeing).
+*   Category terminology is confusing (ISOFIX, travel system).
 
 ### Why AI?
-AI is the right tool because the solution requires **reasoning over unstructured intent**.
-*   **Filters:** Fatima doesn't know she needs "EVA wheels" for urban sidewalks.
-*   **AI Solution:** An LLM can "read" product features like a human assistant, understand that "urban use" implies a need for "shock absorbers," and explain *why* it fits in her language.
+AI is the right tool because this problem **cannot be solved with a button**. A button can filter, but only an AI can understand Fatima's *specific situation* (age, budget, use case, priority) and reason across multiple product dimensions simultaneously to provide a "Why this fits you" explanation.
 
 ---
 
@@ -28,29 +35,29 @@ AI is the right tool because the solution requires **reasoning over unstructured
 
 ### Tools Used
 *   **React + Vite:** Frontend framework for instant HMR and rapid prototyping.
-*   **OpenRouter:** API gateway used to access the `openrouter/auto:free` routing engine.
-*   **Antigravity AI:** Used for pair-programming, UI architecture, and debugging.
+*   **OpenRouter:** API gateway using `openrouter/auto:free` for resilient model fallback.
+*   **Antigravity AI:** Used for pair-programming, UI architecture, and real-time debugging.
 *   **Vanilla CSS:** Custom design system for the "AI Spotlight" and Dark/Light mode glassmorphism.
 
 ### Timeline Log (30-Minute Increments)
-*   **0:00 - 1:00:** Discovery: Shopping as "Fatima," identifying the filter-fatigue problem, and hand-crafting the 25-product bilingual dataset.
+*   **0:00 - 1:00:** Discovery: Shopping as "Fatima," identifying the filter-fatigue bottleneck, and crafting the bilingual dataset.
 *   **1:00 - 1:30:** Initial LLM integration. Tackled context limits by implementing client-side pre-filtering (78% token reduction).
 *   **1:30 - 2:00:** UI Development: Responsive grid, Dark/Light mode, and full Arabic RTL support.
 *   **2:00 - 2:30:** Logic Hardening: Implemented relevance gates and deterministic budget enforcement.
 *   **2:30 - 3:00:** Bug fixing: Solved the "Silicone Spoon" hallucination by implementing keyword-level budget gating.
-*   **3:00 - 3:30:** API Crisis: Phi-3 and Gemini 2.0 Free endpoints were deprecated/busy. Spent 30 mins rotating models.
-*   **3:30 - 4:00:** Resolution: Switched to `openrouter/auto:free` for stability and simplified the budget gate for better precision.
-*   **4:00 - 5:00:** Documentation, Final QA across Light/Dark modes, and Vercel deployment.
+*   **3:00 - 4:00:** API Crisis: Phi-3 and Gemini 2.0 Free endpoints were busy/deprecated. Spent 60 mins rotating models and fixing duplicate variable bugs.
+*   **4:00 - 4:30:** Resolution: Switched to `openrouter/auto:free` for stability and polished the "Precision" logic.
+*   **4:30 - 5:00:** Documentation, Final QA across themes, and Vercel deployment.
 
 ### Prompts That Mattered
 *   **Prompt 1 (The Context Shave):** "Here are the top 10 most relevant products..." (Revised from "Here are all 25...") to save tokens and stay within free-tier limits.
 *   **Prompt 2 (The Math Fix):** "Return UP TO 3 products... do not recommend unrelated items just to fill the list." (Revised to stop the AI from calling a spoon a 'warmer').
-*   **Prompt 3 (The Bilingual Bridge):** Used strict JSON schema with `reason_en` and `reason_ar` to prevent the UI from breaking during RTL flips.
+*   **Prompt 3 (The Precision Rule):** Added `Only return products that truly match the intent.` This builds trust by showing only 1 result if only 1 exists.
 
 ### Dead Ends
 1.  **System Role:** Gemma 3 4B on OpenRouter ignored system instructions. **Lesson:** Move all rules to the user prompt for small models.
-2.  **LLM Budgeting:** Tried letting AI do price comparisons. It failed. **Lesson:** Math belongs in JavaScript, reasoning belongs in the LLM.
-3.  **Specific Model IDs:** Attempted to hardcode `phi-3` and `gemini-2.0`. Both were busy or deprecated during build. **Lesson:** Use an auto-router (`openrouter/auto:free`) for mission-critical free-tier apps.
+2.  **LLM Math:** Tried letting AI do price comparisons. It failed. **Lesson:** Math belongs in JavaScript, reasoning belongs in the LLM.
+3.  **Specific Model IDs:** Attempted to hardcode `phi-3` and `gemini-2.0`. Both were unstable during build. **Lesson:** Use an auto-router (`openrouter/auto:free`) for mission-critical free-tier apps.
 
 ### Cuts from Scope
 *   **Voice-to-Search:** Cut to focus on reasoning logic.
