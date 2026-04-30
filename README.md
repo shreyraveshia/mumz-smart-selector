@@ -84,7 +84,7 @@ We used a **Hybrid Intelligence** approach to overcome the limitations of free-t
 **AI Usage Note (Max 5 Lines):**
 *   **OpenRouter (auto:free):** Performed bilingual product reasoning and safety justifications.
 *   **Antigravity AI:** Handled React UI scaffolding, logic state management, and real-time debugging.
-*   **Google Gemini:** Used during the Discovery phase for persona brainstorming and data synthesis.
+*   **Claude, ChatGPT, Google Gemini:** Used during the Discovery phase for persona brainstorming and data synthesis.
 
 **Time Log (Max 5 Lines):**
 *   **Discovery:** 1 Hour (Persona research & data synthesis).
